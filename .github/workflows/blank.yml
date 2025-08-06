@@ -21,12 +21,12 @@ env:
   DEFAULT_DDING_TOKEN: 'fd87df4f83611b4c4cf31d5ad48f890f9603b57b1cac3d52fb80df8b86a5b629'
 jobs:
   init:
-    if: github.repository_owner == 'quickspider-soft'
+    if: github.repository_owner == 'charlessoft'
     runs-on: ubuntu-latest
     steps:
       - name: init
         run: |
-          echo "quickspider-soft"
+          echo "charlessoft"
 
 
   frontend:
