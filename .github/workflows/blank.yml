@@ -139,7 +139,7 @@ jobs:
 
       - name: Clone quickspider-admin
         run: |
-          git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/quickspider-soft/quick-spider-admin.git ./quick-spider-admin
+          git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
           git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
           
 
@@ -220,7 +220,7 @@ jobs:
   
         - name: Clone quickspider-admin
           run: |
-            git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/quickspider-soft/quick-spider-admin.git ./quick-spider-admin
+            git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
             git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
   
   
@@ -275,7 +275,8 @@ jobs:
             
         - name: Deploy 
           run: |
-            bash $WORK_ROOT_DIR/myutils/quickspider/scripts/quickspider/docker_deploy.sh $WORK_ROOT_DIR/.JENKINS.env
+            echo "ok"
+            #bash $WORK_ROOT_DIR/myutils/quickspider/scripts/quickspider/docker_deploy.sh $WORK_ROOT_DIR/.JENKINS.env
 
 
 
