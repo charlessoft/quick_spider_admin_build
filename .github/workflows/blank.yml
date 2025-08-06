@@ -277,7 +277,7 @@ jobs:
         - name: Deploy 
           run: |
             echo "ok"
-            #bash $WORK_ROOT_DIR/myutils/quickspider/scripts/quickspider/docker_deploy.sh $WORK_ROOT_DIR/.JENKINS.env
+            bash $WORK_ROOT_DIR/myutils/quickspider/scripts/quickspider/docker_deploy.sh $WORK_ROOT_DIR/.JENKINS.env
 
 
 
