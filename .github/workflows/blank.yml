@@ -41,7 +41,7 @@ jobs:
 
       - name: Clone quick_spider-admin
         run: |
-          git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
+          git clone https://oauth2:${{ secrets.EXTGITHUB_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
           #git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
 
 
@@ -141,7 +141,7 @@ jobs:
 
       - name: Clone quickspider-admin
         run: |
-          git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
+          git clone https://oauth2:${{ secrets.EXTGITHUB_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
           #git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
           
 
@@ -224,7 +224,7 @@ jobs:
   
         - name: Clone quickspider-admin
           run: |
-            git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
+            git clone https://oauth2:${{ secrets.EXTGITHUB_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
             #git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
   
   
