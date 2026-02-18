@@ -1,0 +1,307 @@
+name: CI
+
+on:
+  repository_dispatch:
+    types:
+      - quick-spider-admin
+  push:
+    branches: [ '*' ]
+  pull_request:
+  # release:
+  #   types: [ created, edited ]
+  workflow_dispatch:
+    inputs:
+      gva_version:
+        required: true
+        type: string
+env:
+# game
+  DEFAULT_DDING_SECRET: 'SECbe4003c4d14c740788cf9383fa1d8d77c029a03e6df99dde528274b9bcc17926'
+  DEFAULT_DDING_TOKEN: 'fd87df4f83611b4c4cf31d5ad48f890f9603b57b1cac3d52fb80df8b86a5b629'
+jobs:
+  init:
+    if: github.repository_owner == 'charlessoft'
+    runs-on: ubuntu-latest
+    steps:
+      - name: init
+        run: |
+          echo "charlessoft"
+
+
+  frontend:
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'release'  || github.event_name == 'repository_dispatch'
+    name: Frontend node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.16.0]
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v2
+
+      - name: Clone quick_spider-admin
+        run: |
+          git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
+          #git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
+
+
+      - name: Install dding on non-Windows
+        if: runner.os != 'Windows'
+        run: |
+          pip install dding
+          mkdir -p ~/.dding
+          dding_secret="${{ github.event.client_payload.dding_secret || env.DEFAULT_DDING_SECRET }}"
+          dding_token="${{ github.event.client_payload.dding_token || env.DEFAULT_DDING_TOKEN }}"
+          cat <<EOF > ~/.dding/config.json
+          [
+              {
+                  "group": "default",
+                  "secret": "$dding_secret",
+                  "token": "$dding_token"
+              }
+          ]
+          EOF
+          
+          
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+
+      - name: Get current branch name
+        id: get_branch
+        run: |
+          echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "UTILS_DIR=${PWD}/quick-spider-admin/myutils" >> $GITHUB_ENV
+          echo "WORK_ROOT_DIR=${PWD}/quick-spider-admin" >> $GITHUB_ENV
+          echo "==========="
+          echo $(git rev-parse --abbrev-ref HEAD)
+          echo "==========="
+
+      - name: Generate JENKINS.env
+        run: |
+          echo "export BRANCH=$BRANCH " >> $WORK_ROOT_DIR/.JENKINS.env
+          echo "export UTILS_DIR=$UTILS_DIR" >> $WORK_ROOT_DIR/.JENKINS.env
+          echo "export WORK_ROOT_DIR=$WORK_ROOT_DIR" >> $WORK_ROOT_DIR/.JENKINS.env
+          cat $WORK_ROOT_DIR/.JENKINS.env
+        working-directory: ./quick-spider-admin
+
+      - name: Generate git commit
+        run: |
+           bash $WORK_ROOT_DIR/myutils/quickspider/scripts/build_web.sh $WORK_ROOT_DIR/.JENKINS.env
+
+      - name: Build test
+        run: |
+          npm install
+          npm run build
+        working-directory: ./quick-spider-admin/web
+
+
+        
+      - name: Set SSH
+        env:
+          KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          echo $KEY
+          mkdir -p ~/.ssh/ && echo "$KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # - name: Setup Debug Session
+      #   uses: csexton/debugger-action@master
+
+      - name: publish web
+        env:
+          GH_TOKEN: ${{ secrets.EXTGITHUB_TOKEN }}
+        run: |
+          # echo ${{ env.branch_name }} 
+          # echo "export BRANCH=${{ env.branch_name }} " >> .JENKINS.env
+          # find . -name "publish_web.sh"
+          # echo "================="
+          # cat .JENKINS.env
+          bash $WORK_ROOT_DIR/myutils/quickspider/scripts/publish_web.sh $WORK_ROOT_DIR/.JENKINS.env
+
+  backend:
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'release' || github.event_name == 'repository_dispatch'
+    name: Backend go
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        go-version: [1.22]
+    steps:
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      - name: Check out branch
+        uses: actions/checkout@v2
+
+
+      - name: Clone quickspider-admin
+        run: |
+          git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
+          #git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
+          
+
+
+      - name: Get current branch name
+        id: get_branch
+        run: |
+          echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "UTILS_DIR=${PWD}/quick-spider-admin/myutils" >> $GITHUB_ENV
+          echo "WORK_ROOT_DIR=${PWD}/quick-spider-admin" >> $GITHUB_ENV
+          echo "==========="
+          echo $(git rev-parse --abbrev-ref HEAD)
+          echo "==========="
+
+      - name: Generate JENKINS.env
+        run: |
+          echo "export BRANCH=$BRANCH " >> $WORK_ROOT_DIR/.JENKINS.env
+          echo "export UTILS_DIR=$UTILS_DIR" >> $WORK_ROOT_DIR/.JENKINS.env
+          echo "export WORK_ROOT_DIR=$WORK_ROOT_DIR" >> $WORK_ROOT_DIR/.JENKINS.env
+          cat $WORK_ROOT_DIR/.JENKINS.env
+        working-directory: ./quick-spider-admin
+
+
+      - name: Download dependencies
+        run: |
+          make build-server-local
+        working-directory: ./quick-spider-admin
+
+      # - name: Download dependencies
+      #   run: |
+      #     go get -v -t -d ./...
+      #     if [ -f Gopkg.toml ]; then
+      #         curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+      #         dep ensure
+      #     fi
+      #   working-directory: ./quick-spider-admin/server
+
+      # - name: Test and Build
+      #   run: |
+      #     go build -v -race
+      #     make 
+      #     mv server quickspiderserver && tar zcvf quickspiderserver.tar.gz quickspiderserver ./config.yaml ./resource 
+      #   working-directory: ./quick-spider-admin/
+
+
+
+
+      - name: Set SSH
+        env:
+          KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          echo $KEY
+          mkdir -p ~/.ssh/ && echo "$KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+
+
+
+
+
+      - name: publish server
+        env:
+          GH_TOKEN: ${{ secrets.EXTGITHUB_TOKEN }}
+        run: |
+          bash ./quick-spider-admin/myutils/quickspider/scripts/publish_server.sh $WORK_ROOT_DIR/.JENKINS.env
+
+
+
+  deploy:
+      if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'release'  || github.event_name == 'repository_dispatch'
+      name:  deploy
+      runs-on: ubuntu-latest
+      needs:
+        - init
+        - backend
+        - frontend
+      steps:
+        - name: Check out branch
+          uses: actions/checkout@v2
+  
+        - name: Clone quickspider-admin
+          run: |
+            git clone https://oauth2:${{ secrets.MYUSER_TOKEN  }}@github.com/charlessoft/quick-spider-admin.git ./quick-spider-admin
+            #git clone https://oauth2:${{ secrets.GITEE_TOKEN  }}@gitee.com/charlesabc/myutils.git ./quick-spider-admin/myutils
+  
+  
+        - name: Install dding on non-Windows
+          if: runner.os != 'Windows'
+          run: |
+            pip install dding
+            mkdir -p ~/.dding
+            dding_secret="${{ github.event.client_payload.dding_secret || env.DEFAULT_DDING_SECRET }}"
+            dding_token="${{ github.event.client_payload.dding_token || env.DEFAULT_DDING_TOKEN }}"
+            cat <<EOF > ~/.dding/config.json
+            [
+                {
+                    "group": "default",
+                    "secret": "$dding_secret",
+                    "token": "$dding_token"
+                }
+            ]
+            EOF
+  
+  
+        - name: Get current branch name
+          id: get_branch
+          run: |
+            echo "BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+            echo "UTILS_DIR=${PWD}/quick-spider-admin/myutils" >> $GITHUB_ENV
+            echo "WORK_ROOT_DIR=${PWD}/quick-spider-admin" >> $GITHUB_ENV
+            echo "==========="
+            echo $(git rev-parse --abbrev-ref HEAD)
+            echo "==========="
+  
+        - name: Generate JENKINS.env
+          run: |
+            echo "export BRANCH=$BRANCH " >> $WORK_ROOT_DIR/.JENKINS.env
+            echo "export UTILS_DIR=$UTILS_DIR" >> $WORK_ROOT_DIR/.JENKINS.env
+            echo "export WORK_ROOT_DIR=$WORK_ROOT_DIR" >> $WORK_ROOT_DIR/.JENKINS.env
+            cat $WORK_ROOT_DIR/.JENKINS.env
+          working-directory: ./quick-spider-admin
+  
+  
+        - name: Set SSH
+          env:
+            KEY: ${{ secrets.SSH_KEY }}
+            # HOST: ${{ secrets.HOST }}
+            # USER: ${{ secrets.USER }}
+            # PROT: ${{ secrets.PROT }}
+            # MKDIRTEST: ${{ secrets.MKDIRTEST }}
+          run: |
+            echo $KEY
+            mkdir -p ~/.ssh/ && echo "$KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+
+        # - name: Setup Debug Session
+        #   uses: csexton/debugger-action@master
+          
+        - name: Deploy 
+          run: |
+            echo "ok"
+            bash $WORK_ROOT_DIR/myutils/quickspider/scripts/quickspider/docker_deploy.sh $WORK_ROOT_DIR/.JENKINS.env
+
+
+
+        - name: Check Status
+          if: ${{ success() }}
+          shell: pwsh
+          run: |
+            $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
+            
+            Write-Host "Workflow succeeded for $repoName!"
+            dding "github action success :) for quickspider"
+          
+
+        - name: Check Status
+          if: ${{ failure() }}
+          shell: pwsh
+          run: |
+            $repoName = $env:GITHUB_REPOSITORY.Split('/')[-1]
+            Write-Host "Workflow failed for $repoName!"
+            dding "github action fail :( quickspider"
