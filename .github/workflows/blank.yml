@@ -120,6 +120,7 @@ jobs:
           # echo "================="
           # cat .JENKINS.env
           bash $WORK_ROOT_DIR/myutils/quickspider/scripts/publish_web.sh $WORK_ROOT_DIR/.JENKINS.env
+          bash $WORK_ROOT_DIR/myutils/quickspider/scripts/publish_dashboard.sh $WORK_ROOT_DIR/.JENKINS.env
 
   backend:
     if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'release' || github.event_name == 'repository_dispatch'
