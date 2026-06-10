@@ -104,7 +104,7 @@ jobs:
       - name: Build test1
         run: |
           npm install -g pnpm
-          pnpm i
+          pnpm i --no-frozen-lockfile
           pnpm build:h5
         working-directory: ./quick-spider-admin/wxapp
 
